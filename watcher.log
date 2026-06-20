@@ -58,3 +58,31 @@
 [2026-06-20 02:38:42] Playback resumed (next track) in 16.8s: Lil Tecca - NUMBER 2
 [2026-06-20 02:47:46] Ad detected (title: 'AFRAM Baltimore') - restarting Spotify...
 [2026-06-20 02:47:52] Playback resumed (next track) in 6.3s: 21 Savage - a lot
+[2026-06-20 02:57:42] Spotify ad watcher started (poll every 250ms).
+[2026-06-20 03:04:06] Ad detected (title: '—') - restarting Spotify...
+[2026-06-20 03:04:07] Saved Spotify volume: 100%
+[2026-06-20 03:04:13] Restored Spotify volume: 100%
+[2026-06-20 03:04:13] Playback resumed (next track) in 6.9s: Lil Tecca - Back It Up
+[2026-06-20 03:16:54] Ad detected (title: 'AFRAM Baltimore') - restarting Spotify...
+[2026-06-20 03:16:54] Saved Spotify volume: 100%
+[2026-06-20 03:17:00] Restored Spotify volume: 100%
+[2026-06-20 03:17:00] Playback resumed (next track) in 6.5s: Dua Lipa - Levitating (feat. DaBaby)
+[2026-06-20 03:25:02] Ad detected (title: 'Hay DoorDash En La Casa') - restarting Spotify...
+[2026-06-20 03:25:02] Saved Spotify volume: 100%
+[2026-06-20 03:25:08] Restored Spotify volume: 100%
+[2026-06-20 03:25:08] Playback resumed (next track) in 6.7s: Lil Tecca - Malibu’s Most Wanted
+[2026-06-20 03:34:16] Manual test: muting Spotify for 2s...
+[2026-06-20 03:34:19] Manual test: unmuted. If audio cut out and came back, mute control works.
+[2026-06-20 03:34:54] Ad detected (title: 'Enjoy GLOW, limited ads.') - restarting Spotify...
+[2026-06-20 03:34:54] Saved Spotify volume: 100%
+[2026-06-20 03:35:00] Restored Spotify volume: 100%
+[2026-06-20 03:35:00] Playback resumed (next track) in 6.7s: Drake - Make Them Cry
+[2026-06-20 03:42:42] Ad detected (title: 'Syd for Short') - restarting Spotify...
+[2026-06-20 03:42:42] Saved Spotify volume: 100%
+[2026-06-20 03:42:49] Restored Spotify volume: 100%
+[2026-06-20 03:42:49] Playback resumed (next track) in 6.7s: Dave - Trojan Horse
+[2026-06-20 03:44:23] Spotify ad watcher started (poll every 250ms).
+[2026-06-20 03:44:55] Manual test restart requested...
+[2026-06-20 03:44:55] Saved Spotify mixer volume: 50%
+[2026-06-20 03:45:02] Restored Spotify mixer volume: 50%
+[2026-06-20 03:45:02] Playback resumed (next track) in 7.3s: Lil Skies - Riot

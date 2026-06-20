@@ -1,8 +1,19 @@
 # SpotifyAdRestarter.ps1
 # Watches Spotify's window title. When a song plays, the title is "Artist - Song".
 # During an ad it changes to "Advertisement" / "Spotify" / a sponsor name.
-# When an ad is detected: kill Spotify, relaunch it, and press the media Play key
-# to resume the music (restarting clears the ad).
+# When an ad is detected: kill Spotify, relaunch it, press Play, and skip to the
+# next track to resume the music (restarting clears the ad).
+#
+# Volume fix: a Spotify restart resets its INTERNAL slider to 100%, which made
+# every ad jump your volume back to max. We can't read/set that internal slider
+# on free Spotify, but your real loudness is (Windows-mixer % x internal %).
+# So before the restart we remember Spotify's Windows-mixer level, and after the
+# music resumes we set the mixer back to that same level. The internal slider
+# going to 100% no longer matters - the mixer pins your actual loudness.
+# This needs no keystrokes and no extra focus stealing.
+#
+# To change volume: just use the Windows volume mixer (or right-click the speaker
+# icon -> Volume mixer -> Spotify). The script tracks whatever you set there.
 #
 # Run with -TestRestart to do a single restart cycle and report how long it took.
 
@@ -24,16 +35,10 @@ public static class MediaKey {
     [DllImport("user32.dll")]
     public static extern bool SetForegroundWindow(IntPtr hWnd);
     [DllImport("user32.dll")]
-    public static extern bool ShowWindow(IntPtr hWnd, int nCmdShow);
-    [DllImport("user32.dll")]
     public static extern bool ShowWindowAsync(IntPtr hWnd, int nCmdShow);
-    [DllImport("user32.dll")]
-    public static extern bool IsWindowVisible(IntPtr hWnd);
     const byte VK_MEDIA_PLAY_PAUSE = 0xB3;
     const byte VK_MEDIA_NEXT_TRACK = 0xB0;
     const uint KEYEVENTF_KEYUP = 0x2;
-    const int SW_HIDE = 0;
-    const int SW_MINIMIZE = 6;
     const int SW_SHOWMINNOACTIVE = 7;
     public static void PlayPause() {
         keybd_event(VK_MEDIA_PLAY_PAUSE, 0, 0, UIntPtr.Zero);
@@ -51,8 +56,8 @@ public static class MediaKey {
 "@
 
 # --- Per-application volume control via Windows Core Audio (WASAPI) ---------
-# Lets us read Spotify's mixer volume before a restart and restore it after,
-# so an ad restart never changes how loud your music is.
+# Lets us read and set Spotify's Windows-mixer volume - the control that pins
+# your actual loudness regardless of where Spotify's internal slider lands.
 Add-Type @"
 using System;
 using System.Runtime.InteropServices;
@@ -163,6 +168,7 @@ public static class AppVolume {
         return level;
     }
 
+    // set the app's Windows-mixer volume (0.0-1.0); returns false if no session
     public static bool Set(string processName, float level) {
         var vol = FindSession(processName);
         if (vol == null) return false;
@@ -208,10 +214,15 @@ function Restart-Spotify {
     # the title of the song the ad interrupted - we want to advance PAST this one
     $interruptedTitle = Get-SpotifyTitle
 
-    # remember the per-app volume so the restart doesn't change how loud you are
+    # Remember Spotify's Windows-mixer volume. The restart resets Spotify's
+    # INTERNAL slider to 100%, but we can't touch that on free Spotify; instead
+    # we re-pin the mixer to this value afterwards so your real loudness is the
+    # same as before the ad. Default to 100% if no session is readable.
     $savedVolume = [AppVolume]::Get('Spotify')
     if ($savedVolume -ge 0) {
-        Write-Log ("Saved Spotify volume: {0:p0}" -f $savedVolume)
+        Write-Log ("Saved Spotify mixer volume: {0:p0}" -f $savedVolume)
+    } else {
+        $savedVolume = 1.0
     }
 
     Stop-Process -Name Spotify -Force -ErrorAction SilentlyContinue
@@ -237,7 +248,7 @@ function Restart-Spotify {
     while ((Get-Date) -lt $keepDown) {
         $hwnd = Get-SpotifyWindow
         if ($hwnd -ne [IntPtr]::Zero) { [MediaKey]::Minimize($hwnd) }
-        if ($userWindow -ne [IntPtr]::Zero) { [MediaKey]::SetForegroundWindow($userWindow) }
+        if ($userWindow -ne [IntPtr]::Zero) { [void][MediaKey]::SetForegroundWindow($userWindow) }
         Start-Sleep -Milliseconds 200
     }
 
@@ -252,12 +263,11 @@ function Restart-Spotify {
     while ((Get-Date) -lt $deadline) {
         $t = Get-SpotifyTitle
         if ($t -and $t -match ' [-–] ' -and $t -ne $interruptedTitle) {
-            # restore the volume now that an audio session exists again
-            if ($savedVolume -ge 0) {
-                Start-Sleep -Milliseconds 300   # let the session register
-                if ([AppVolume]::Set('Spotify', $savedVolume)) {
-                    Write-Log ("Restored Spotify volume: {0:p0}" -f $savedVolume)
-                }
+            # music is back - re-pin the Windows-mixer volume so the restart's
+            # internal-slider reset doesn't change how loud you actually are.
+            Start-Sleep -Milliseconds 300   # let the new audio session register
+            if ([AppVolume]::Set('Spotify', $savedVolume)) {
+                Write-Log ("Restored Spotify mixer volume: {0:p0}" -f $savedVolume)
             }
             Write-Log ("Playback resumed (next track) in {0:n1}s: {1}" -f $sw.Elapsed.TotalSeconds, $t)
             return
@@ -270,6 +280,12 @@ function Restart-Spotify {
             $nextPress = (Get-Date).AddSeconds(3)
         }
         Start-Sleep -Milliseconds 250
+    }
+
+    # couldn't confirm a new track, but still try to restore the mixer volume so
+    # at least loudness is right even if the track-skip didn't land.
+    if ([AppVolume]::Set('Spotify', $savedVolume)) {
+        Write-Log ("Restored Spotify mixer volume: {0:p0} (track not confirmed)" -f $savedVolume)
     }
     Write-Log "Spotify restarted, but couldn't confirm a new track started - press next if needed."
 }
